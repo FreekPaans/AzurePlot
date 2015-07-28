@@ -6,6 +6,7 @@ using System.Text;
 namespace AzurePlot.Lib.SQLDatabase {
 	public enum SQLDatabaseVersionEnum {
 		V11,
-		Unknown
-	}
+		Unknown,
+        V12
+    }
 }

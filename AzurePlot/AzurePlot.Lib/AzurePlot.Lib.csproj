@@ -115,7 +115,7 @@
     </Compile>
     <Compile Include="SQLDatabase\SQLErrorNumbers.cs" />
     <Compile Include="SQLDatabase\TestConnectionResult.cs" />
-    <Compile Include="SQLDatabase\V11ServerUsagesClient.cs" />
+    <Compile Include="SQLDatabase\SysResourceStatsUsagesClient.cs" />
     <Compile Include="UsageObject.cs" />
     <Compile Include="WebsiteApiMetricsData.cs" />
     <Compile Include="WebsiteMetricsDataSource.cs" />

@@ -27,7 +27,7 @@ namespace AzurePlot.Lib.SQLDatabase {
 		private TestConnectionResult TestVersion() {
 			var version = GetVersion();
 			if(version.Version == SQLDatabaseVersionEnum.Unknown) {
-				return new TestConnectionResult(string.Format("Not supported SQL Server version ({0}), currently only V11 databases are supported",version.DetailedVersion), null);
+				return new TestConnectionResult(string.Format("Not supported SQL Server version ({0}), currently only V11 and V12 databases are supported",version.DetailedVersion), null);
 			}
 
 			return TestConnectionResult.Success;
@@ -50,7 +50,10 @@ namespace AzurePlot.Lib.SQLDatabase {
 			var version = GetVersion();
 			switch(version.Version) {
 				case SQLDatabaseVersionEnum.V11:
-					return new V11ServerUsagesClient(_connection);
+                case SQLDatabaseVersionEnum.V12:
+                case SQLDatabaseVersionEnum.Unknown:
+					return new SysResourceStatsUsagesClient(_connection);
+                
 			}
 
 			throw new Exception(string.Format("Version not supported {0}",version));

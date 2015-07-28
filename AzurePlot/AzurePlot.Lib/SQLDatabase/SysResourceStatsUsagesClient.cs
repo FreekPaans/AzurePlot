@@ -4,21 +4,23 @@ using System.Linq;
 using System.Text;
 
 namespace AzurePlot.Lib.SQLDatabase {
-	class V11ServerUsagesClient : ServerUsagesClient{
+	class SysResourceStatsUsagesClient : ServerUsagesClient{
 		readonly SQLDatabaseConnection _connection;
 
-		public V11ServerUsagesClient(SQLDatabaseConnection connection) {
+		public SysResourceStatsUsagesClient(SQLDatabaseConnection connection) {
 			_connection = connection;
 		}
 		public ICollection<UsageObject> GetUsages(DateTime from) {
 			var result = new List<UsageObject>();
 			using(var connection = _connection.GetConnection()) {
 				connection.Open();
+                
 				var cmd =connection.CreateCommand();
 				cmd.CommandText = "select * from sys.resource_stats where start_time > @from";
 				cmd.Parameters.Add(new System.Data.SqlClient.SqlParameter("from", from));
-					
-				using(var reader = cmd.ExecuteReader()) {
+                cmd.CommandTimeout = (int)TimeSpan.FromMinutes(1).TotalSeconds;;
+
+                using(var reader = cmd.ExecuteReader()) {
 					while(reader.Read()) {
 						result.AddRange(GetResultFromReader(reader));
 					}
@@ -80,7 +82,11 @@ namespace AzurePlot.Lib.SQLDatabase {
 			using(var connection = _connection.GetConnection()) {
 				connection.Open();
 				var cmd =connection.CreateCommand();
-				cmd.CommandText = "select distinct(database_name) from sys.resource_stats";
+				cmd.CommandText = "select distinct(database_name) from sys.resource_stats where start_time>=@yesterday";
+
+                cmd.Parameters.Add(new System.Data.SqlClient.SqlParameter("yesterday", DateTime.UtcNow.AddDays(-1).Date));
+
+                cmd.CommandTimeout = (int)TimeSpan.FromMinutes(1).TotalSeconds;
 					
 				using(var reader = cmd.ExecuteReader()) {
 					while(reader.Read()) {

@@ -25,6 +25,8 @@ namespace AzurePlot.Lib.SQLDatabase {
 			switch(version) {
 				case "11":
 					return new SQLDatabaseVersion(SQLDatabaseVersionEnum.V11,stringVersion);
+                case "12":
+                    return new SQLDatabaseVersion(SQLDatabaseVersionEnum.V12, stringVersion);
 			}
 			return new SQLDatabaseVersion(SQLDatabaseVersionEnum.Unknown, stringVersion);
 		}
