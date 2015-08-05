@@ -1,11 +1,14 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 
 namespace AzurePlot.Lib.SQLDatabase {
 	class SysResourceStatsUsagesClient : ServerUsagesClient{
 		readonly SQLDatabaseConnection _connection;
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
 		public SysResourceStatsUsagesClient(SQLDatabaseConnection connection) {
 			_connection = connection;
@@ -20,11 +23,18 @@ namespace AzurePlot.Lib.SQLDatabase {
 				cmd.Parameters.Add(new System.Data.SqlClient.SqlParameter("from", from));
                 cmd.CommandTimeout = (int)TimeSpan.FromMinutes(1).TotalSeconds;;
 
-                using(var reader = cmd.ExecuteReader()) {
-					while(reader.Read()) {
-						result.AddRange(GetResultFromReader(reader));
-					}
-				}
+                try {
+                    using(var reader = cmd.ExecuteReader()) {
+					    while(reader.Read()) {
+						    result.AddRange(GetResultFromReader(reader));
+					    }
+				    }
+                }
+                catch(SqlException e) {
+                    //swallow the exception, it might be we still got results..
+                    //this is a fixed for a problem where sql azure throws an error "Unable to retrieve Azure SQL Database telemetry data" (error code 25745),  but still returns results
+                    _logger.Log(LogLevel.Error,"Reading resource stats failed",e);
+                }
 			}
 			return result;
 		}
