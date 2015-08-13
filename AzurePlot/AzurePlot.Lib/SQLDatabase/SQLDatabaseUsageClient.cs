@@ -6,18 +6,24 @@ using System.Threading.Tasks;
 
 namespace AzurePlot.Lib.SQLDatabase {
 	public class SQLDatabaseUsageClient {
-		readonly SQLDatabaseConnection _connection;
+		readonly SQLDatabaseConnection _masterDatabaseConnection;
+	    private readonly Func<string, SQLDatabaseConnection> _createDatabaseConnectionFunc;
 
-		SQLDatabaseUsageClient(SQLDatabaseConnection connection) {
-			_connection = connection;
-		}
-		public static SQLDatabaseUsageClient CreateServerUsagesClient(string servername,string username,string password) {
-			return new SQLDatabaseUsageClient(new SQLDatabaseConnection(servername,username,password,"master"));
+	    SQLDatabaseUsageClient(SQLDatabaseConnection masterDatabaseConnection, Func<string, SQLDatabaseConnection> createDatabaseConnectionFunc)
+	    {
+	        _masterDatabaseConnection = masterDatabaseConnection;
+	        _createDatabaseConnectionFunc = createDatabaseConnectionFunc;
+	    }
+
+	    public static SQLDatabaseUsageClient CreateServerUsagesClient(string servername,string username,string password) {
+			return new SQLDatabaseUsageClient(
+                new SQLDatabaseConnection(servername,username,password,"master"),
+                name => new SQLDatabaseConnection(servername, username, password, name));
 			
 		}
 
 		public TestConnectionResult TestConnection() {
-			var result = _connection.TestOpenConnection();
+			var result = _masterDatabaseConnection.TestOpenConnection();
 			if(result.Failed) {
 				return result;
 			}
@@ -37,29 +43,55 @@ namespace AzurePlot.Lib.SQLDatabase {
 
 		private SQLDatabaseVersion GetVersion() {
 			if(_version == null) {
-				_version = _connection.GetVersion();
+				_version = _masterDatabaseConnection.GetVersion();
 			}
 			return _version;
 		}
 
-		public ICollection<UsageObject> GetUsages(DateTime fromTimeUTC) {
-			return GetUsagesClient().GetUsages(fromTimeUTC);
+		public ICollection<UsageObject> GetUsages(DateTime fromTimeUTC)
+		{
+		    var usages = GetSysResourceStatsUsagesClient().GetUsages(fromTimeUTC);
+
+		    var databases = ListDatabases();
+
+		    foreach (var databaseName in databases)
+		    {
+		        var sqlDatabaseConnection = _createDatabaseConnectionFunc(databaseName);
+                var usagesClient = GetSysDmDbResourceStats(sqlDatabaseConnection, databaseName);
+
+                usages = usages.Concat(usagesClient.GetUsages(fromTimeUTC)).ToList();
+		    }
+
+            return usages;
 		}
 
-		private ServerUsagesClient GetUsagesClient() {
+		private ServerUsagesClient GetSysResourceStatsUsagesClient() {
 			var version = GetVersion();
 			switch(version.Version) {
 				case SQLDatabaseVersionEnum.V11:
                 case SQLDatabaseVersionEnum.V12:
                 case SQLDatabaseVersionEnum.Unknown:
-					return new SysResourceStatsUsagesClient(_connection);
-                
+					return new SysResourceStatsUsagesClient(_masterDatabaseConnection);
 			}
 
-			throw new Exception(string.Format("Version not supported {0}",version));
+			throw new Exception($"Version not supported {version}");
 		}
 
-		public static string NormalizeServername(string servername) {
+	    private ServerUsagesClient GetSysDmDbResourceStats(SQLDatabaseConnection sqlDatabaseConnection, string databaseName)
+	    {
+            var version = GetVersion();
+            switch (version.Version)
+            {
+                case SQLDatabaseVersionEnum.V11:
+                case SQLDatabaseVersionEnum.V12:
+                case SQLDatabaseVersionEnum.Unknown:
+                    return new SysDmDbResourceStatsUsagesClient(sqlDatabaseConnection, databaseName);
+            }
+
+            throw new Exception($"Version not supported {version}");
+        }
+
+        public static string NormalizeServername(string servername) {
 			return SQLDatabaseConnection.NormalizeServername(servername);
 		}
 
@@ -69,12 +101,32 @@ namespace AzurePlot.Lib.SQLDatabase {
 
         public string ServerName {
             get {
-                return _connection.Servername;
+                return _masterDatabaseConnection.Servername;
             }
         }
 
         internal List<string> ListDatabases() {
-            return GetUsagesClient().ListDatabases();
+            var result = new List<string>();
+
+            using (var connection = _masterDatabaseConnection.GetConnection())
+            {
+                connection.Open();
+                var cmd = connection.CreateCommand();
+                cmd.CommandText = "select distinct(database_name) from sys.resource_stats where start_time>=@yesterday";
+
+                cmd.Parameters.Add(new System.Data.SqlClient.SqlParameter("yesterday", DateTime.UtcNow.AddDays(-1).Date));
+
+                cmd.CommandTimeout = (int)TimeSpan.FromMinutes(1).TotalSeconds;
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        result.Add((string)reader["database_name"]);
+                    }
+                }
+            }
+            return result;
         }
     }
 }
