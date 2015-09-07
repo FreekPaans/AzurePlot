@@ -44,12 +44,60 @@ namespace AzurePlot.Lib {
         }
 
         private Task<ChartData> GetSQLDatabaseChartData(TimeSpan interval) {
-            var client = SQLDatabaseUsageClient.CreateServerUsagesClient(_path[0], SqlCredentialsProvider(_path[0]).Username, SqlCredentialsProvider(_path[0]).Password);
-            var usages = client.GetUsages(DateTime.UtcNow.Add(interval.Negate()));
 
-            var serverName = _path[0];
+            var method = _path[0];
+            var serverName = _path[1];
+
             var counter = _path[_path.Length-1];
             var database = _path[_path.Length-2];
+
+            if(method == "real-time") {
+                return GetRealTimeData(serverName,database,counter);
+            }
+
+            return GetLongTermData(interval,serverName,database,counter);
+        }
+
+        private Task<ChartData> GetRealTimeData(string serverName, string database, string counter) {
+            var client = SQLDatabaseUsageClient.CreateDatabaseUsagesClient(
+                serverName,
+                database,
+                SqlCredentialsProvider(_path[0]).Username,
+                SqlCredentialsProvider(_path[0]).Password);
+
+            var usages = client.GetUsages();
+
+            switch(counter) {
+                case "logwrite":
+                    return FilterSQLRealTimeUsages(usages,serverName,database, "Log write %", "avg_log_write_percent");
+                case "cpu":
+                    return FilterSQLRealTimeUsages(usages,serverName,database,"CPU %","avg_cpu_percent");
+                case "dataio":
+                    return FilterSQLRealTimeUsages(usages,serverName,database,"Data IO %","avg_data_io_percent");
+                case "memory":
+                    return FilterSQLRealTimeUsages(usages,serverName,database,"Memory %","avg_memory_usage_percent");
+                default:
+                    throw new Exception("Unknown counter " +counter);
+            }
+        }
+
+        private Task<ChartData> FilterSQLRealTimeUsages(ICollection<UsageObject> usages,string servername, string databasename,string title,string filterValue) {
+            return Task.FromResult(new ChartData {
+                Name = string.Format("{0}.{1} {2} (SQL Database)",servername,databasename,title),
+                Series = new List<SeriesData> { 
+                    new SeriesData { 
+                        Name = title, 
+                        DataPoints = usages.Where(_=>_.GraphiteCounterName.Contains(filterValue)).Select(_=>new DataPoint { Timestamp = _.Timestamp, Value = _.Value }).ToList()
+                    }
+                }
+            });
+        }
+
+        private Task<ChartData> GetLongTermData(TimeSpan interval, string serverName, string database, string counter) {
+
+            var client = SQLDatabaseUsageClient.CreateServerUsagesClient(_path[0],SqlCredentialsProvider(_path[0]).Username,SqlCredentialsProvider(_path[0]).Password);
+            var usages = client.GetUsages(DateTime.UtcNow.Add(interval.Negate()));
+            
 
             switch(counter) {
                 case "logio":

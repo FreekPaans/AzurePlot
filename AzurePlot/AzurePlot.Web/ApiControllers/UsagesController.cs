@@ -57,7 +57,18 @@ namespace AzurePlot.Web.ApiControllers {
 		}
 
 		private ICollection<UsageObject> GetDatabaseUsages(DataAccess.SQLDatabase database) {
-			return SQLDatabaseUsageClient.CreateServerUsagesClient(database.Servername,database.Username,database.Password).GetUsages(DateTime.UtcNow.AddHours(-1));
+            var result = new List<UsageObject>();
+
+			result.AddRange(SQLDatabaseUsageClient.CreateServerUsagesClient(database.Servername,database.Username,database.Password).GetUsages(DateTime.UtcNow.AddHours(-1)));
+
+            var databaseNames = SQLDatabaseUsageClient.ListUserDatabases(database.Servername,database.Username,database.Password);
+
+            foreach(var dbName in databaseNames) {
+                result.AddRange(SQLDatabaseUsageClient.CreateDatabaseUsagesClient(database.Servername,dbName,database.Username,database.Password).GetUsages());
+            }
+
+            return result;
+            
 		}
 
 		private async Task<IEnumerable<UsageObject>> GetUsageForSubscription(DataAccess.AzureSubscription subscription) {

@@ -84,5 +84,11 @@ namespace AzurePlot.Lib.SQLDatabase {
 				return _database;
 			}
 		}
-	}
+
+        public string Username {
+            get {
+                return _username;
+            }
+        }
+    }
 }
