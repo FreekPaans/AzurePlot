@@ -79,7 +79,7 @@ namespace AzurePlot.Lib.SQLDatabase {
                                 continue;
                             }
 
-                            var value = (decimal)reader[i];
+                            var value = Convert.ToDecimal(reader[i]);
 
                             result.Add(new UsageObject {
                                 Timestamp = time.ToString("o"),
