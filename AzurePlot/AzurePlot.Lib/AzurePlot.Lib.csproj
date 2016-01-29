@@ -114,7 +114,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SQLDatabase\SQLErrorNumbers.cs" />
-    <Compile Include="SQLDatabase\SysDmDbResourceStatsUsagesClient.cs" />
     <Compile Include="SQLDatabase\TestConnectionResult.cs" />
     <Compile Include="SQLDatabase\SysResourceStatsUsagesClient.cs" />
     <Compile Include="UsageObject.cs" />

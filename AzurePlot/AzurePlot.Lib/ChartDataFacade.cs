@@ -64,8 +64,6 @@ namespace AzurePlot.Lib {
                     return FilterSQLUsages(usages, serverName,database,"Memory","active_memory_used_kb");
                 case "sessions":
                     return FilterSQLUsages(usages, serverName,database,"Sessions", "active_session_count");
-                case "avg_memory_usage":
-                    return FilterSQLUsages(usages, serverName,database,"Average memory usage", "avg_memory_usage_percent");
                 default:
                     throw new Exception("Unknown counter " +counter);
             }

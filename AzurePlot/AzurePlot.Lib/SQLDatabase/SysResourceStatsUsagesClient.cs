@@ -39,14 +39,11 @@ namespace AzurePlot.Lib.SQLDatabase {
 			return result;
 		}
 
-		readonly static string[] NotCounterColumns = new string[] { "start_time", "end_time","sku", "database_name",
-            // Ignore these 3 below because they are already queried in SysDmDbResourceStatsUsagesClient where they have a higher resolution.
-            "avg_cpu_percent", "avg_data_io_percent", "avg_log_write_percent"
-        };
+		readonly static string[] NotCounterColumns = new string[] { "start_time", "end_time","sku", "database_name"};
 
 		private ICollection<UsageObject> GetResultFromReader(System.Data.SqlClient.SqlDataReader reader) {
 			var databaseName = (string)reader["database_name"];
-			var timestamp = DateTime.SpecifyKind((DateTime)reader["start_time"],DateTimeKind.Utc);
+			var start_time = DateTime.SpecifyKind((DateTime)reader["start_time"],DateTimeKind.Utc);
 			var result = new List<UsageObject>();
 			for(var i=0;i<reader.FieldCount;i++) {
 				var name = reader.GetName(i);
@@ -60,7 +57,7 @@ namespace AzurePlot.Lib.SQLDatabase {
 					continue;
 				}
 
-				result.Add(new UsageObject { Timestamp = timestamp.ToString("o"), Value = (double)valueResult, GraphiteCounterName = GetCounterName(databaseName,name) });
+				result.Add(new UsageObject { Timestamp = start_time.ToString("o"), Value = (double)valueResult, GraphiteCounterName = GetCounterName(databaseName,name) });
 			}
 
 			return result;
@@ -87,5 +84,27 @@ namespace AzurePlot.Lib.SQLDatabase {
 		private string GetCounterName(string database, string name) {
 			return new GraphiteCounterName("Azure.SQLDatabase", _connection.Servername, database, name).ToString();
 		}
+
+
+        public List<string> ListDatabases() {
+            var result = new List<string>();
+
+			using(var connection = _connection.GetConnection()) {
+				connection.Open();
+				var cmd =connection.CreateCommand();
+				cmd.CommandText = "select distinct(database_name) from sys.resource_stats where start_time>=@yesterday";
+
+                cmd.Parameters.Add(new System.Data.SqlClient.SqlParameter("yesterday", DateTime.UtcNow.AddDays(-1).Date));
+
+                cmd.CommandTimeout = (int)TimeSpan.FromMinutes(1).TotalSeconds;
+					
+				using(var reader = cmd.ExecuteReader()) {
+					while(reader.Read()) {
+						result.Add((string)reader["database_name"]);
+					}
+				}
+			}
+			return result;
+        }
     }
 }

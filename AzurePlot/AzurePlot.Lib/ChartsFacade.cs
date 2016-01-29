@@ -80,7 +80,6 @@ namespace AzurePlot.Lib {
                 res.Add(initChartInfo(database,"storage", "Storage"));
                 res.Add(initChartInfo(database,"memory", "Memory"));
                 res.Add(initChartInfo(database,"sessions", "Sessions"));
-                res.Add(initChartInfo(database, "avg_memory_usage", "Average memory usage"));
              }   
 
              return res;
