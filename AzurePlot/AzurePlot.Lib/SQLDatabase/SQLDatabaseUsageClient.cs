@@ -16,7 +16,12 @@ namespace AzurePlot.Lib.SQLDatabase {
 			
 		}
 
-		public TestConnectionResult TestConnection() {
+        public static SQLDatabaseStatsClient CreateDatabaseUsagesClient(string serverName,string database,string username,string password) {
+            return new SQLDatabaseStatsClient(new SQLDatabaseConnection(serverName,username,password,database));
+        }
+
+
+        public TestConnectionResult TestConnection() {
 			var result = _connection.TestOpenConnection();
 			if(result.Failed) {
 				return result;
@@ -63,7 +68,27 @@ namespace AzurePlot.Lib.SQLDatabase {
 			return SQLDatabaseConnection.NormalizeServername(servername);
 		}
 
-		public string GetVersionString() {
+        public static ICollection<string> ListUserDatabases(string servername,string username,string password) {
+            var connection = new SQLDatabaseConnection(servername,username,password,"master");
+            var res = new List<string>();
+            using(var conn = connection.GetConnection()) {
+                conn.Open();
+                var cmd = conn.CreateCommand();
+                cmd.CommandText = " select * from sys.databases";
+                using(var reader = cmd.ExecuteReader()) {
+                    while(reader.Read()) {
+                        var name = (string)reader["name"];
+                        if(name=="master") {
+                            continue;
+                        }
+                        res.Add(name);
+                    }
+                    return res;
+                }
+            }
+        }
+
+        public string GetVersionString() {
 			return GetVersion().DetailedVersion;
 		}
 
@@ -76,5 +101,7 @@ namespace AzurePlot.Lib.SQLDatabase {
         internal List<string> ListDatabases() {
             return GetUsagesClient().ListDatabases();
         }
+
+        
     }
 }

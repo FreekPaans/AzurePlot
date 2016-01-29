@@ -21,7 +21,7 @@ namespace AzurePlot.Lib.SQLDatabase {
 				var cmd =connection.CreateCommand();
 				cmd.CommandText = "select * from sys.resource_stats where start_time > @from";
 				cmd.Parameters.Add(new System.Data.SqlClient.SqlParameter("from", from));
-                cmd.CommandTimeout = (int)TimeSpan.FromMinutes(1).TotalSeconds;;
+                cmd.CommandTimeout = (int)TimeSpan.FromSeconds(5).TotalSeconds;
 
                 try {
                     using(var reader = cmd.ExecuteReader()) {
@@ -96,7 +96,7 @@ namespace AzurePlot.Lib.SQLDatabase {
 
                 cmd.Parameters.Add(new System.Data.SqlClient.SqlParameter("yesterday", DateTime.UtcNow.AddDays(-1).Date));
 
-                cmd.CommandTimeout = (int)TimeSpan.FromMinutes(1).TotalSeconds;
+                cmd.CommandTimeout = (int)TimeSpan.FromSeconds(5).TotalSeconds;
 					
 				using(var reader = cmd.ExecuteReader()) {
 					while(reader.Read()) {

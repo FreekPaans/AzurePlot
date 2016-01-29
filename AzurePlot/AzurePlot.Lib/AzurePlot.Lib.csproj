@@ -108,6 +108,7 @@
     <Compile Include="SqlCredentials.cs" />
     <Compile Include="SQLDatabase\ServerUsagesClient.cs" />
     <Compile Include="SQLDatabase\SQLDatabaseConnection.cs" />
+    <Compile Include="SQLDatabase\SQLDatabaseStatsClient.cs" />
     <Compile Include="SQLDatabase\SQLDatabaseUsageClient.cs" />
     <Compile Include="SQLDatabase\SQLDatabaseVersion.cs" />
     <Compile Include="SQLDatabase\SQLDatabaseVersionEnum.cs">
