@@ -30,5 +30,10 @@ namespace AzurePlot.Lib.SQLDatabase {
 			}
 			return new SQLDatabaseVersion(SQLDatabaseVersionEnum.Unknown, stringVersion);
 		}
+
+	    public override string ToString()
+	    {
+	        return $"Version: {_version}, DetailedVersion: {_detailedVersion}";
+	    }
 	}
 }
