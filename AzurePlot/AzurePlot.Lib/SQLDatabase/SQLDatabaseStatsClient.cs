@@ -79,6 +79,13 @@ namespace AzurePlot.Lib.SQLDatabase {
                                 continue;
                             }
 
+                            if (reader.IsDBNull(i)) {
+                                /* New column "avg_login_rate_percent" in sys.dm_db_resource_stats currently has NULL as 
+                                 * value, so just skip if that happens.
+                                 */
+                                continue;
+                            }
+
                             var value = Convert.ToDecimal(reader[i]);
 
                             result.Add(new UsageObject {
